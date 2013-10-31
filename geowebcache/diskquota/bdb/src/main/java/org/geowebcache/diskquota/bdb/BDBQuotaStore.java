@@ -138,23 +138,23 @@ public class BDBQuotaStore implements QuotaStore {
         open = true;
         File storeDirectory = new File(cacheRootDir, "diskquota_page_store");
         storeDirectory.mkdirs();
-        File version = new File(storeDirectory, VERSION_FILE);
+        File version = new File(storeDirectory, "version.txt");
         if(storeDirectory.list().length==0) {
             // Directory is empty
             try {
-                FileUtils.write(version, STORE_VERSION);
+                FileUtils.write(version, "1.1");
                 } catch (IOException e) {
-                    throw new IOException("BDB DiskQuota could not write "+VERSION_FILE+" to new database", e);
+                    throw new IOException("BDB DiskQuota could not write version.txt to new database", e);
                 }
         } else {
             // Directory not empty
             try {
                 String versionString = FileUtils.readFileToString(version);
-                if (!versionString.equals(STORE_VERSION)) {
+                if (!versionString.equals("1.1")) {
                     throw new IOException("BDB DiskQuota does not support database version "+versionString);
                 }
             } catch (IOException e) {
-                throw new IOException("BDB DiskQuota could not read "+VERSION_FILE+" to detemine database version", e);
+                throw new IOException("BDB DiskQuota could not detemine database version", e);
             }
         }
         
