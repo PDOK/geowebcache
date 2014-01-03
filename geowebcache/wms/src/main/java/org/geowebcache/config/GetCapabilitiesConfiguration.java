@@ -416,12 +416,7 @@ public class GetCapabilitiesConfiguration implements Configuration {
         this.layers.clear();
         for (TileLayer layer : tileLayers) {
             layer.initialize(gridSetBroker);
-            if(primaryConfig!=null) {
-                primaryConfig.setDefaultValues(layer);
-            } else if (log.isErrorEnabled()) {
-                log.error("GetCapabilitiesConfiguration could not initialize a layer with default "+
-                        "values as it does not have a global configuration to delegate to.");
-            }
+            primaryConfig.setDefaultValues(layer);
             layers.put(layer.getName(), layer);
         }
         return tileLayers.size();
