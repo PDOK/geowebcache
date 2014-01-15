@@ -324,14 +324,14 @@ public class WMTSGetCapabilities {
      private void layerStyles(XMLBuilder xml, TileLayer layer, List<ParameterFilter> filters) throws IOException {
          String defStyle = layer.getStyles();
          if(filters == null) {
-             xml.indentElement("Style");
-             xml.attribute("isDefault", "true");
+             str.append("    <Style isDefault=\"true\">\n");
              if(defStyle == null) {
-                 xml.simpleElement("ows:Identifier", "", true);
+                 str.append("      <ows:Identifier></ows:Identifier>\n");
              } else {
-                 xml.simpleElement("ows:Identifier", "TileLayer.encodeDimensionValue(defStyle)", true);
+                 str.append("      <ows:Identifier>"+TileLayer.encodeDimensionValue(defStyle)+"</ows:Identifier>\n");
              }
-             xml.endElement("Style");
+             
+             str.append("    </Style>\n");
          } else {
              ParameterFilter stylesFilter = null;
              Iterator<ParameterFilter> iter = filters.iterator();
@@ -365,11 +365,9 @@ public class WMTSGetCapabilities {
                      xml.endElement();
                  }
              } else {
-                // Couldn't get a list of styles so just say there's a default.
-                xml.indentElement("Style");
-                xml.attribute("isDefault", "true");
-                xml.simpleElement("ows:Identifier", "", true);
-                xml.endElement();
+                 str.append("    <Style isDefault=\"true\">\n");
+                 str.append("      <ows:Identifier></ows:Identifier>\n");
+                 str.append("    </Style>\n");
              }
          }
      }
