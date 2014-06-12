@@ -85,13 +85,19 @@ public class LayerVersionRestlet extends GWCRestlet {
             Representation rep = new JsonRepresentation(responseObj);
             
             response.setEntity(rep);
-        } catch (IOException | JSONException ex) {
-            JSONObject obj = new JSONObject(new LayerVersionUpdateResponse("ERROR", ex.getMessage()));
+        } catch (IOException ex) {
+            handlePostException(ex, response);
+        } catch (JSONException ex) {
+            handlePostException(ex, response);
+        }
+    }
+    
+    private void handlePostException(Exception ex, Response response) {
+        JSONObject obj = new JSONObject(new LayerVersionUpdateResponse("ERROR", ex.getMessage()));
             Representation rep = new JsonRepresentation(obj);
             
             response.setEntity(rep);
             response.setStatus(Status.SERVER_ERROR_INTERNAL);
-        }
     }
     
     private String getLayerName(Request request) {
