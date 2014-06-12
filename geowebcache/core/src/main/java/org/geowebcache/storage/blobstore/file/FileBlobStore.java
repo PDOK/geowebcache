@@ -74,14 +74,29 @@ public class FileBlobStore implements BlobStore {
     private File tmp;
 
     private static ExecutorService deleteExecutorService;
+    
+    private LayerNameMap layerMap = new IdentityMap();
 
     public FileBlobStore(DefaultStorageFinder defStoreFinder) throws StorageException, ConfigurationException {
-        this(defStoreFinder.getDefaultPath());
+        this(defStoreFinder, null);
     }
-
+    
     public FileBlobStore(String rootPath) throws StorageException {
+        this(rootPath, null);
+    }
+    
+    public FileBlobStore(DefaultStorageFinder defStoreFinder, LayerNameMap layerMap) throws StorageException, ConfigurationException {
+        this(defStoreFinder.getDefaultPath(), layerMap);
+    }
+    
+    public FileBlobStore(String rootPath, LayerNameMap layerMap) throws StorageException {
         path = rootPath;
-        pathGenerator = new FilePathGenerator(this.path);
+        
+        if (layerMap != null) {
+            this.layerMap = layerMap;
+        }
+        
+        pathGenerator = new FilePathGenerator(this.path, this.layerMap);
 
         // prepare the root
         File fh = new File(path);
@@ -302,7 +317,7 @@ public class FileBlobStore implements BlobStore {
     }
 
     private File getLayerPath(String layerName) {
-        String prefix = path + File.separator + filteredLayerName(layerName);
+        String prefix = path + File.separator + layerMap.map(filteredLayerName(layerName));
 
         File layerPath = new File(prefix);
         return layerPath;
@@ -346,7 +361,7 @@ public class FileBlobStore implements BlobStore {
         int count = 0;
 
         String prefix = path + File.separator
-                + filteredLayerName(trObj.getLayerName());
+                + layerMap.map(filteredLayerName(trObj.getLayerName()));
 
         final File layerPath = new File(prefix);
 
@@ -676,5 +691,4 @@ public class FileBlobStore implements BlobStore {
         File metadataFile = new File(layerPath, "metadata.properties");
         return metadataFile;
     }
-
 }
