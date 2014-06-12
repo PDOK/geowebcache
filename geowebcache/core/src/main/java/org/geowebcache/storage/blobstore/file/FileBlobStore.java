@@ -82,16 +82,30 @@ public class FileBlobStore implements BlobStore {
 
     private File tmp;
 
-    private ExecutorService deleteExecutorService;
+    private static ExecutorService deleteExecutorService;
+    
+    private LayerNameMap layerMap = new IdentityMap();
 
-    public FileBlobStore(DefaultStorageFinder defStoreFinder) throws StorageException,
-            ConfigurationException {
-        this(defStoreFinder.getDefaultPath());
+    public FileBlobStore(DefaultStorageFinder defStoreFinder) throws StorageException, ConfigurationException {
+        this(defStoreFinder, null);
     }
-
+    
     public FileBlobStore(String rootPath) throws StorageException {
-        this.path = rootPath;
-        pathGenerator = new FilePathGenerator(this.path);
+        this(rootPath, null);
+    }
+    
+    public FileBlobStore(DefaultStorageFinder defStoreFinder, LayerNameMap layerMap) throws StorageException, ConfigurationException {
+        this(defStoreFinder.getDefaultPath(), layerMap);
+    }
+    
+    public FileBlobStore(String rootPath, LayerNameMap layerMap) throws StorageException {
+        path = rootPath;
+        
+        if (layerMap != null) {
+            this.layerMap = layerMap;
+        }
+        
+        pathGenerator = new FilePathGenerator(this.path, this.layerMap);
 
         // prepare the root
         File fh = new File(path);
@@ -309,7 +323,7 @@ public class FileBlobStore implements BlobStore {
     }
 
     private File getLayerPath(String layerName) {
-        String prefix = path + File.separator + filteredLayerName(layerName);
+        String prefix = path + File.separator + layerMap.map(filteredLayerName(layerName));
 
         File layerPath = new File(prefix);
         return layerPath;
@@ -352,7 +366,8 @@ public class FileBlobStore implements BlobStore {
     public boolean delete(TileRange trObj) throws StorageException {
         int count = 0;
 
-        String prefix = path + File.separator + filteredLayerName(trObj.getLayerName());
+        String prefix = path + File.separator
+                + layerMap.map(filteredLayerName(trObj.getLayerName()));
 
         final File layerPath = new File(prefix);
 
@@ -688,39 +703,4 @@ public class FileBlobStore implements BlobStore {
         File metadataFile = new File(layerPath, "metadata.properties");
         return metadataFile;
     }
-
-    @Override
-    public boolean layerExists(String layerName) {
-        return getLayerPath(layerName).exists();
-    }
-
-    /**
-     * Specify the file system block size, used to pad out tile lenghts to whole blocks when
-     * reporting {@link BlobStoreListener#tileDeleted tileDeleted},
-     * {@link BlobStoreListener#tileStored tileStored}, or {@link BlobStoreListener#tileUpdated
-     * tileUpdated} events.
-     * 
-     * @param fileSystemBlockSize the size of a filesystem block; must be a positive integer,
-     *        usually a power of 2 greater or equal to 512.
-     */
-    public void setBlockSize(int fileSystemBlockSize) {
-        Preconditions.checkArgument(fileSystemBlockSize > 0);
-        this.diskBlockSize = fileSystemBlockSize;
-    }
-
-    /**
-     * Pads the size of a tile to whole filesystem blocks
-     * 
-     * @param fileSize the size of the tile file as reported by {@link File#length()}
-     * @return {@code fileSize} padded to whole blocks as per {@link #diskBlockSize}
-     */
-    private long padSize(long fileSize) {
-
-        final int blockSize = this.diskBlockSize;
-
-        long actuallyUsedStorage = blockSize * (int) Math.ceil((double) fileSize / blockSize);
-
-        return actuallyUsedStorage;
-    }
-
 }
