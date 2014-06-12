@@ -34,10 +34,18 @@ public class FilePathGenerator {
     
     private static Log log = LogFactory.getLog(FilePathGenerator.class);
     
-    String cacheRoot;
+    private String cacheRoot;
+    private LayerNameMap layerMap = new IdentityMap();
 
     public FilePathGenerator(String cacheRoot) {
+        this(cacheRoot, null);
+    }
+
+    public FilePathGenerator(String cacheRoot, LayerNameMap layerMap) {
         this.cacheRoot = cacheRoot;
+        if (layerMap != null) {
+            this.layerMap = layerMap;
+        }
     }
     
     /**
@@ -78,7 +86,7 @@ public class FilePathGenerator {
 
         path.append(cacheRoot);
         path.append(File.separatorChar);
-        appendFiltered(tile.getLayerName(), path);
+        appendFiltered(layerMap.map(tile.getLayerName()), path);
         path.append(File.separatorChar);
         appendGridsetZoomLevelDir(tile.getGridSetId(), z, path);
         String parametersId = tile.getParametersId();

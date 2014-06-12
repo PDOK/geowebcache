@@ -82,16 +82,31 @@ public class FileBlobStore implements BlobStore {
 
     private File tmp;
 
-    private ExecutorService deleteExecutorService;
+    private static ExecutorService deleteExecutorService;
 
-    public FileBlobStore(DefaultStorageFinder defStoreFinder) throws StorageException,
-            ConfigurationException {
-        this(defStoreFinder.getDefaultPath());
+    private LayerNameMap layerMap = new IdentityMap();
+
+    public FileBlobStore(DefaultStorageFinder defStoreFinder) throws StorageException, ConfigurationException {
+        this(defStoreFinder, null);
     }
 
     public FileBlobStore(String rootPath) throws StorageException {
-        this.path = rootPath;
-        pathGenerator = new FilePathGenerator(this.path);
+        this(rootPath, null);
+    }
+
+    public FileBlobStore(DefaultStorageFinder defStoreFinder, LayerNameMap layerMap) throws StorageException,
+            ConfigurationException {
+        this(defStoreFinder.getDefaultPath(), layerMap);
+    }
+
+    public FileBlobStore(String rootPath, LayerNameMap layerMap) throws StorageException {
+        path = rootPath;
+
+        if (layerMap != null) {
+            this.layerMap = layerMap;
+        }
+
+        pathGenerator = new FilePathGenerator(this.path, this.layerMap);
 
         // prepare the root
         File fh = new File(path);
@@ -309,7 +324,7 @@ public class FileBlobStore implements BlobStore {
     }
 
     private File getLayerPath(String layerName) {
-        String prefix = path + File.separator + filteredLayerName(layerName);
+        String prefix = path + File.separator + layerMap.map(filteredLayerName(layerName));
 
         File layerPath = new File(prefix);
         return layerPath;
@@ -352,7 +367,7 @@ public class FileBlobStore implements BlobStore {
     public boolean delete(TileRange trObj) throws StorageException {
         int count = 0;
 
-        String prefix = path + File.separator + filteredLayerName(trObj.getLayerName());
+        String prefix = path + File.separator + layerMap.map(filteredLayerName(trObj.getLayerName()));
 
         final File layerPath = new File(prefix);
 
