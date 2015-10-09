@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <!-- mvn -Dtest=StorageBrokerTest -Dmaven.test.jvmargs='-XX:+HeapDumpOnOutOfMemoryError -Xms32m -Xmx32m' test -->  
+  <!-- mvn -Dtest=StorageBrokerTest -Dmaven.test.jvmargs='-XX:+HeapDumpOnOutOfMemoryError -Xms32m -Xmx32m' test -->
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.geowebcache</groupId>
   <artifactId>geowebcache</artifactId>
@@ -35,12 +35,12 @@
     <imageio-ext.version>1.1.10</imageio-ext.version>
     <hazelcast.version>2.3.1</hazelcast.version>
   </properties>
-  
+
   <repositories>
     <repository>
       <id>boundless</id>
       <name>Boundless Maven Repository</name>
-      <url>http://repo.boundlessgeo.com/main</url>
+      <url>https://boundless.artifactoryonline.com/boundless/snapshot/</url>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>
@@ -62,7 +62,7 @@
       <layout>default</layout>
     </repository>
   </repositories>
- 
+
   <distributionManagement>
     <repository>
       <id>boundless</id>
@@ -87,14 +87,14 @@
       <classifier>tests</classifier>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>servlet-api</artifactId>
       <version>2.5</version>
       <scope>provided</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
@@ -143,20 +143,20 @@
       <artifactId>log4j</artifactId>
       <version>${log4j.version}</version>
     </dependency>
-    
+
 	<!-- PNG Encoder dependencies -->
 	<dependency>
       <groupId>it.geosolutions.imageio-ext</groupId>
       <artifactId>imageio-ext-png</artifactId>
       <version>${imageio-ext.version}</version>
     </dependency>
-    
+
     <dependency>
 		<groupId>it.geosolutions.imageio-ext</groupId>
 		<artifactId>imageio-ext-streams</artifactId>
 		<version>${imageio-ext.version}</version>
 	</dependency>
-	
+
     <!-- dependency>
       <groupId>jcs</groupId>
       <artifactId>jcs</artifactId>
@@ -176,7 +176,7 @@
     </exclusion>
       </exclusions>
     </dependency -->
-    
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -231,7 +231,7 @@
       <version>1.3</version>
       <scope>test</scope>
     </dependency>
-    
+
     <!-- Spring dependencies -->
     <dependency>
       <groupId>org.springframework</groupId>
@@ -261,7 +261,7 @@
       <version>${spring.version}</version>
       <!-- optional>true</optional -->
     </dependency>
-   
+
     <!--  Jetty starter dependencies -->
     <dependency>
       <groupId>org.mortbay.jetty</groupId>
@@ -303,56 +303,56 @@
       <artifactId>org.restlet</artifactId>
       <version>${restlet.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>com.noelios.restlet</groupId>
       <artifactId>com.noelios.restlet</artifactId>
       <version>${restlet.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>com.noelios.restlet</groupId>
       <artifactId>com.noelios.restlet.ext.simple</artifactId>
       <version>${restlet.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>org.restlet</groupId>
       <artifactId>org.restlet.ext.freemarker</artifactId>
       <version>${restlet.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>org.restlet</groupId>
       <artifactId>org.restlet.ext.spring</artifactId>
       <version>${restlet.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>org.restlet</groupId>
       <artifactId>org.restlet.ext.json</artifactId>
       <version>${restlet.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>com.noelios.restlet</groupId>
       <artifactId>com.noelios.restlet.ext.servlet</artifactId>
       <version>${restlet.version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>net.sf.json-lib</groupId>
       <artifactId>json-lib</artifactId>
       <version>2.1</version>
       <classifier>jdk13</classifier>
     </dependency>
-    
+
     <dependency>
       <groupId>com.thoughtworks.xstream</groupId>
       <artifactId>xstream</artifactId>
       <version>${xstream.version}</version>
     </dependency>
-    
+
     <!-- acegi dependencies -->
     <dependency>
       <groupId>org.acegisecurity</groupId>
@@ -373,13 +373,13 @@
     </exclusion>
       </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>org.codehaus.jettison</groupId>
       <artifactId>jettison</artifactId>
       <version>1.0.1</version>
     </dependency>
-    
+
     <dependency>
       <groupId>stax</groupId>
       <artifactId>stax-api</artifactId>
@@ -469,7 +469,7 @@
     </plugins>
   </reporting>
 
- 
+
   <build>
     <plugins>
       <plugin>
@@ -530,7 +530,7 @@
       <server>localhost</server>
     </configuration>
       </plugin>
-      
+
       <plugin>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-compiler-plugin</artifactId>
@@ -540,7 +540,7 @@
       <encoding>UTF-8</encoding>
     </configuration>
       </plugin>
-      
+
       <plugin>
     <artifactId>maven-source-plugin</artifactId>
     <configuration>
@@ -555,7 +555,7 @@
       </execution>
     </executions>
       </plugin>
-      
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -603,7 +603,7 @@
 
 
     </plugins>
-    
+
     <extensions>
       <extension>
     <groupId>org.apache.maven.wagon</groupId>
@@ -611,7 +611,7 @@
     <version>1.0-beta-2</version>
       </extension>
     </extensions>
-    
+
     <pluginManagement>
       <plugins>
         <plugin>
@@ -622,7 +622,7 @@
       </plugins>
     </pluginManagement>
   </build>
-  
+
   <profiles>
     <profile>
       <id>deploy.boundless</id>

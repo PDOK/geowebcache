@@ -11,8 +11,8 @@
  *
  *  You should have received a copy of the GNU Lesser General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * 
- * @author Arne Kepp / The Open Planning Project 2009 
+ *
+ * @author Arne Kepp / The Open Planning Project 2009
  *
  */
 package org.geowebcache.storage.blobstore.file;
@@ -60,7 +60,7 @@ import com.google.common.base.Preconditions;
 
 /**
  * See BlobStore interface description for details
- * 
+ *
  */
 public class FileBlobStore implements BlobStore {
     private static Log log = LogFactory
@@ -83,28 +83,28 @@ public class FileBlobStore implements BlobStore {
     private File tmp;
 
     private static ExecutorService deleteExecutorService;
-    
+
     private LayerNameMap layerMap = new IdentityMap();
 
     public FileBlobStore(DefaultStorageFinder defStoreFinder) throws StorageException, ConfigurationException {
         this(defStoreFinder, null);
     }
-    
+
     public FileBlobStore(String rootPath) throws StorageException {
         this(rootPath, null);
     }
-    
+
     public FileBlobStore(DefaultStorageFinder defStoreFinder, LayerNameMap layerMap) throws StorageException, ConfigurationException {
         this(defStoreFinder.getDefaultPath(), layerMap);
     }
-    
+
     public FileBlobStore(String rootPath, LayerNameMap layerMap) throws StorageException {
         path = rootPath;
-        
+
         if (layerMap != null) {
             this.layerMap = layerMap;
         }
-        
+
         pathGenerator = new FilePathGenerator(this.path, this.layerMap);
 
         // prepare the root
@@ -288,7 +288,7 @@ public class FileBlobStore implements BlobStore {
 
     /**
      * Renames the layer directory for layer {@code oldLayerName} to {@code newLayerName}
-     * 
+     *
      * @return true if the directory for the layer was renamed, or the original directory didn't
      *         exist in first place. {@code false} if the original directory exists but can't be
      *         renamed to the target directory
@@ -432,7 +432,7 @@ public class FileBlobStore implements BlobStore {
 
     /**
      * Set the blob property of a TileObject.
-     * 
+     *
      * @param stObj the tile to load. Its setBlob() method will be called.
      * @return true if successful, false otherwise
      */
@@ -582,7 +582,7 @@ public class FileBlobStore implements BlobStore {
     /**
      * This method will recursively create the missing directories and call the listeners
      * directoryCreated method for each created directory.
-     * 
+     *
      * @param path
      * @return
      */
@@ -696,6 +696,40 @@ public class FileBlobStore implements BlobStore {
             }
         }
         return properties;
+    }
+
+    @Override
+    public boolean layerExists(String layerName) {
+	return getLayerPath(layerName).exists();
+    }
+
+    /**
+     * Specify the file system block size, used to pad out tile lenghts to whole blocks when
+     * reporting {@link BlobStoreListener#tileDeleted tileDeleted},
+     * {@link BlobStoreListener#tileStored tileStored}, or {@link BlobStoreListener#tileUpdated
+     * tileUpdated} events.
+     *
+     * @param fileSystemBlockSize the size of a filesystem block; must be a positive integer,
+     *	      usually a power of 2 greater or equal to 512.
+     */
+    public void setBlockSize(int fileSystemBlockSize) {
+	Preconditions.checkArgument(fileSystemBlockSize > 0);
+	this.diskBlockSize = fileSystemBlockSize;
+    }
+
+    /**
+     * Pads the size of a tile to whole filesystem blocks
+     *
+     * @param fileSize the size of the tile file as reported by {@link File#length()}
+     * @return {@code fileSize} padded to whole blocks as per {@link #diskBlockSize}
+     */
+    private long padSize(long fileSize) {
+
+	final int blockSize = this.diskBlockSize;
+
+	long actuallyUsedStorage = blockSize * (int) Math.ceil((double) fileSize / blockSize);
+
+	return actuallyUsedStorage;
     }
 
     private File getMetadataFile(final String layerName) {
