@@ -76,7 +76,7 @@ public class FilePathFilter implements FilenameFilter {
         } else if (fileName.contains(".")) {
             // filename
             ret = acceptFileName(parent, fileName);
-        } else if(!parent.getName().equals(layerPrefix)){
+        } else if(!parent.getName().startsWith(layerPrefix)){
             // not a sibling of the gridset prefix (e.g. another gridset), so an intermediate
             ret = acceptIntermediateDir(fileName);
         }
