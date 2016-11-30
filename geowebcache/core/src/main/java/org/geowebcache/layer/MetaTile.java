@@ -359,11 +359,19 @@ public class MetaTile implements TileResponseReceiver {
         // GR: it'd be only a 2% perf gain according to profile   
         Iterator<ImageWriter> it = javax.imageio.ImageIO.getImageWritersByFormatName(format);
         ImageWriter writer = null;
+        String writerClass = "";
         while (it.hasNext()) {
             writer = it.next();
-            if (writer.getClass().toString().startsWith("com.sun.media.imageioimpl")) {
+            writerClass = writer.getClass().toString();
+            if (writerClass.startsWith("com.sun.media.imageioimpl")) {
                 break;
             }
+        }
+        if (writer == null) {
+            return false;
+        }
+        if (writerClass.contains("JPEG")) {
+            log.warn("Writing JPEG using " + writerClass + " - NATIVE_JAI_AVAILABLE is " + NATIVE_JAI_AVAILABLE);
         }
         ImageWriteParam param = writer.getDefaultWriteParam();
 
