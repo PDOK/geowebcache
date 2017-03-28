@@ -37,6 +37,11 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.netflix.servo.monitor.BasicCounter;
+import com.netflix.servo.monitor.Counter;
+import com.netflix.servo.monitor.StatsTimer;
+import com.netflix.servo.monitor.StepCounter;
+import com.netflix.servo.monitor.Stopwatch;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,6 +50,7 @@ import org.geowebcache.io.FileResource;
 import org.geowebcache.io.Resource;
 import org.geowebcache.mime.MimeException;
 import org.geowebcache.mime.MimeType;
+import org.geowebcache.monitoring.ServoMonitor;
 import org.geowebcache.storage.BlobStore;
 import org.geowebcache.storage.BlobStoreListener;
 import org.geowebcache.storage.BlobStoreListenerList;
@@ -85,6 +91,17 @@ public class FileBlobStore implements BlobStore {
     private static ExecutorService deleteExecutorService;
 
     private LayerNameMap layerMap = new IdentityMap();
+    private StatsTimer fileReadTimer;
+    private StatsTimer fileWriteTimer;
+    private Counter readCountTotal;
+    private Counter readCount;
+    private Counter cacheHit;
+    private Counter cacheMiss;
+    private StepCounter writeCount;
+    private BasicCounter writeCountTotal;
+    private StatsTimer fileDeleteTimer;
+    private StatsTimer folderScanningTimer;
+    private StatsTimer folderDeleteTimer;
 
     public FileBlobStore(DefaultStorageFinder defStoreFinder) throws StorageException, ConfigurationException {
         this(defStoreFinder, null);
@@ -124,6 +141,19 @@ public class FileBlobStore implements BlobStore {
         stagingArea = new File(path, "_gwc_in_progress_deletes_");
         createDeleteExecutorService();
         issuePendingDeletes();
+
+        ServoMonitor servoMonitor = ServoMonitor.getInstance();
+        fileReadTimer = servoMonitor.getFileReadTimer();
+        fileWriteTimer = servoMonitor.getFileWriteTimer();
+        readCountTotal = servoMonitor.getReadCountTotal();
+        readCount = servoMonitor.getReadCount();
+        cacheHit = servoMonitor.getCacheHit();
+        cacheMiss = servoMonitor.getCacheMiss();
+        writeCount = servoMonitor.getWriteCount();
+        writeCountTotal = servoMonitor.getWriteCountTotal();
+        folderScanningTimer = servoMonitor.getFolderScanningTimer();
+        fileDeleteTimer = servoMonitor.getFileDeleteTimer();
+        folderDeleteTimer = servoMonitor.getFolderDeleteTimer();
     }
 
     private void issuePendingDeletes() {
@@ -388,38 +418,35 @@ public class FileBlobStore implements BlobStore {
         final String blobFormat = trObj.getMimeType().getFormat();
         final String parametersId = trObj.getParametersId();
 
-        File[] srsZoomDirs = layerPath.listFiles(tileFinder);
+        File[] srsZoomDirs = scanFolder(layerPath, tileFinder);
 
         final String gridsetPrefix = filteredGridSetId(gridSetId);
         for (File srsZoomParamId : srsZoomDirs) {
             int zoomLevel = findZoomLevel(gridsetPrefix, srsZoomParamId.getName());
-            File[] intermediates = srsZoomParamId.listFiles(tileFinder);
+            File[] intermediates = scanFolder(srsZoomParamId, tileFinder);
 
             for (File imd : intermediates) {
-                File[] tiles = imd.listFiles(tileFinder);
-                long length;
-
+                File[] tiles = scanFolder(imd, tileFinder);
                 for (File tile : tiles) {
-                    length = tile.length();
-                    boolean deleted = tile.delete();
+                    boolean deleted = deleteFile(tile);
                     if (deleted) {
                         String[] coords = tile.getName().split("\\.")[0].split("_");
                         long x = Long.parseLong(coords[0]);
                         long y = Long.parseLong(coords[1]);
                         listeners.sendTileDeleted(layerName, gridSetId, blobFormat, parametersId,
-                                x, y, zoomLevel, padSize(length));
+                                x, y, zoomLevel, padSize(1L));
                         count++;
                     }
                 }
 
                 // Try deleting the directory (will be done only if the directory is empty)
-                if (imd.delete()) {
+                if (deleteFolder(imd)) {
                     // listeners.sendDirectoryDeleted(layerName);
                 }
             }
 
             // Try deleting the zoom directory (will be done only if the directory is empty)
-            if (srsZoomParamId.delete()) {
+            if (deleteFolder(srsZoomParamId)) {
                 count++;
                 // listeners.sendDirectoryDeleted(layerName);
             }
@@ -430,6 +457,37 @@ public class FileBlobStore implements BlobStore {
         return true;
     }
 
+    private File[] scanFolder(File folder, FilePathFilter filter ) {
+        Stopwatch stopwatch = folderScanningTimer.start();
+        try{
+            String path = folder.getPath();
+            log.info("Truncate: scanning folder: " + path);
+            File[] files = folder.listFiles(filter);
+            log.info("Truncate: Found " + files.length + " files/folder to scan or delete in " + path);
+            return files;
+        } finally {
+            stopwatch.stop();
+        }
+    }
+
+    private boolean deleteFile(File tile) {
+        Stopwatch stopwatch = fileDeleteTimer.start();
+        try{
+            return tile.delete();
+        } finally {
+            stopwatch.stop();
+        }
+    }
+
+    private boolean deleteFolder(File folder) {
+        Stopwatch stopwatch = folderDeleteTimer.start();
+        try{
+            return folder.delete();
+        } finally {
+            stopwatch.stop();
+        }
+    }
+
     /**
      * Set the blob property of a TileObject.
      *
@@ -437,16 +495,25 @@ public class FileBlobStore implements BlobStore {
      * @return true if successful, false otherwise
      */
     public boolean get(TileObject stObj) throws StorageException {
-        File fh = getFileHandleTile(stObj, false);
-        if (!fh.exists()) {
-            stObj.setStatus(Status.MISS);
-            return false;
-        } else {
-            Resource resource = readFile(fh);
-            stObj.setBlob(resource);
-            stObj.setCreated(resource.getLastModified());
-            stObj.setBlobSize((int) resource.getSize());
-            return true;
+        Stopwatch stopwatch = fileReadTimer.start();
+        try {
+            readCount.increment();
+            readCountTotal.increment();
+            File fh = getFileHandleTile(stObj, false);
+            if (!fh.exists()) {
+                stObj.setStatus(Status.MISS);
+                cacheMiss.increment();
+                return false;
+            } else {
+                Resource resource = readFile(fh);
+                stObj.setBlob(resource);
+                stObj.setCreated(resource.getLastModified());
+                stObj.setBlobSize((int) resource.getSize());
+                cacheHit.increment();
+                return true;
+            }
+        } finally {
+            stopwatch.stop();
         }
     }
 
@@ -454,28 +521,35 @@ public class FileBlobStore implements BlobStore {
      * Store a tile.
      */
     public void put(TileObject stObj) throws StorageException {
-        final File fh = getFileHandleTile(stObj, true);
-        final long oldSize = fh.length();
-        final boolean existed = oldSize > 0;
-        writeFile(fh, stObj, existed);
-        // mark the last modification as the tile creation time if set, otherwise
-        // we'll leave it to the writing time
-        if (stObj.getCreated() > 0) {
-            try {
-                fh.setLastModified(stObj.getCreated());
-            } catch (Exception e) {
-                log.debug("Failed to set the last modified time to match the tile request time", e);
+        Stopwatch stopwatch = fileWriteTimer.start();
+        try {
+            writeCount.increment();
+            writeCountTotal.increment();
+            final File fh = getFileHandleTile(stObj, true);
+            final long oldSize = fh.length();
+            final boolean existed = oldSize > 0;
+            writeFile(fh, stObj, existed);
+            // mark the last modification as the tile creation time if set, otherwise
+            // we'll leave it to the writing time
+            if (stObj.getCreated() > 0) {
+                try {
+                    fh.setLastModified(stObj.getCreated());
+                } catch (Exception e) {
+                    log.debug("Failed to set the last modified time to match the tile request time", e);
+                }
             }
-        }
 
         /*
          * This is important because listeners may be tracking tile existence
          */
-        stObj.setBlobSize((int) padSize(stObj.getBlobSize()));
-        if (existed) {
-            listeners.sendTileUpdated(stObj, padSize(oldSize));
-        } else {
-            listeners.sendTileStored(stObj);
+            stObj.setBlobSize((int) padSize(stObj.getBlobSize()));
+            if (existed) {
+                listeners.sendTileUpdated(stObj, padSize(oldSize));
+            } else {
+                listeners.sendTileStored(stObj);
+            }
+        } finally {
+            stopwatch.stop();
         }
     }
 

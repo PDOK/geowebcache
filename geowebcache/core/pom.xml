@@ -45,8 +45,11 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.netflix.servo</groupId>
+      <artifactId>servo-core</artifactId>
+    </dependency>
 
-    
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
